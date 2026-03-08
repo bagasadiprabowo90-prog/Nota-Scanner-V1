@@ -8,17 +8,22 @@ function formatRp(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-function getWeekRange() {
+function getWeekStart() {
   const now = new Date();
   const day = now.getDay();
-  const diffToMon = (day === 0 ? -6 : 1 - day);
+  const diffToMon = day === 0 ? -6 : 1 - day;
   const mon = new Date(now);
   mon.setDate(now.getDate() + diffToMon);
   mon.setHours(0, 0, 0, 0);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
+  return mon.getTime();
+}
+
+function getWeekEnd() {
+  const start = new Date(getWeekStart());
+  const sun = new Date(start);
+  sun.setDate(start.getDate() + 6);
   sun.setHours(23, 59, 59, 999);
-  return { start: mon, end: sun };
+  return sun.getTime();
 }
 
 export default function HomePage() {
@@ -30,11 +35,11 @@ export default function HomePage() {
   const totalExpense = useMemo(() => transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0), [transactions]);
   const balance = totalIncome - totalExpense;
 
-  const { start, end } = getWeekRange();
   const weeklyExpenses = useMemo(() => {
-    return transactions
-      .filter(t => t.type === "expense" && new Date(t.date) >= start && new Date(t.date) <= end);
-  }, [transactions, start, end]);
+    const s = getWeekStart();
+    const e = getWeekEnd();
+    return transactions.filter(t => t.type === "expense" && new Date(t.date).getTime() >= s && new Date(t.date).getTime() <= e);
+  }, [transactions]);
 
   // Biggest expense category this week
   const categoryTotals = useMemo(() => {

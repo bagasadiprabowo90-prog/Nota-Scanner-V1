@@ -152,6 +152,7 @@ export default function ScanPage() {
       {mode === "scanning" && (
         <div className="flex flex-col items-center gap-4 py-12">
           {previewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={previewUrl} alt="preview" className="w-48 h-48 object-cover rounded-2xl border-4 border-emerald-200" />
           )}
           <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
@@ -202,6 +203,7 @@ export default function ScanPage() {
           </div>
 
           {previewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={previewUrl} alt="struk" className="w-full max-h-40 object-cover rounded-2xl border border-gray-200" />
           )}
 
