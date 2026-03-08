@@ -1,33 +1,28 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import BottomNav from "@/components/BottomNav";
+import FloatingNotification from "@/components/FloatingNotification";
+import { NotificationProvider } from "@/lib/NotificationContext";
+import { TransactionProvider } from "@/lib/TransactionContext";
 
 export const metadata: Metadata = {
-  title: "Next.js Template",
-  description: "A minimal Next.js starter template",
+  title: "Money Scanner",
+  description: "Scan struk belanja & kelola keuangan Anda",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="id">
+      <body className="bg-gray-50 font-sans antialiased">
+        <NotificationProvider>
+          <TransactionProvider>
+            <FloatingNotification />
+            <main className="max-w-lg mx-auto min-h-screen pb-20">
+              {children}
+            </main>
+            <BottomNav />
+          </TransactionProvider>
+        </NotificationProvider>
       </body>
     </html>
   );
