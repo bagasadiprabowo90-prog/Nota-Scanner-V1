@@ -11,41 +11,79 @@ interface ParsedItem {
 
 function parseReceiptNumber(value: string): number {
   const normalized = value.trim();
-  const hasThousandComma = /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(normalized);
-  const hasThousandDot = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(normalized);
+  // Format: 1.000.000 atau 1,000,000 (ribuan)
+  const hasThousandDot = /^\d{1,3}(\.\d{3})+$/.test(normalized);
+  const hasThousandComma = /^\d{1,3}(,\d{3})+$/.test(normalized);
 
+  if (hasThousandDot) {
+    return Number(normalized.replace(/\./g, ""));
+  }
   if (hasThousandComma) {
     return Number(normalized.replace(/,/g, ""));
   }
-
-  if (hasThousandDot) {
-    return Number(normalized.replace(/\./g, "").replace(",", "."));
-  }
-
-  return Number(normalized.replace(",", "."));
+  // Plain number
+  return Number(normalized.replace(/[^\d]/g, ""));
 }
 
-function isReceiptMetadata(line: string): boolean {
+// Lines that are definitely NOT items/prices
+function isSkipLine(line: string): boolean {
+  const lower = line.toLowerCase();
+  const skipKeywords = [
+    // Metadata header
+    "order id", "no.", "no :", "no:", "nomor", "invoice",
+    "pelanggan", "customer", "kasir", "cashier", "operator",
+    "tgl", "tanggal", "date", "waktu", "jam", "time",
+    "est selesai", "selesai",
+    "telp", "telepon", "phone", "hp", "wa ",
+    "alamat", "address",
+    // Receipt header/footer
+    "struk", "nota", "receipt", "kwitansi",
+    "item :", "parfum", "catatan", "note",
+    "syarat", "ketentuan", "terms",
+    "terimakasih", "terima kasih", "thank",
+    "selamat datang", "welcome",
+    // Payment method info (bukan amount)
+    "rekening", "transfer", "bank ", "bca", "bni", "bri", "mandiri",
+    "gopay", "ovo", "dana", "shopeepay", "qris",
+    // Non-price numbers
+    "kwh", "meter", "stand meter", "id pel", "tarif",
+    "token", "stroom",
+  ];
+  return skipKeywords.some((kw) => lower.includes(kw));
+}
+
+// Lines that indicate total/subtotal
+function isTotalLine(line: string): boolean {
+  const lower = line.toLowerCase();
+  return ["total", "jumlah", "grand total", "subtotal", "sub total", "amount"].some((kw) => lower.includes(kw));
+}
+
+// Lines that are payment summary (not item prices)
+function isPaymentLine(line: string): boolean {
+  const lower = line.toLowerCase();
   return [
-    "order id",
-    "pelanggan",
-    "kasir",
-    "tgl ",
-    "tanggal",
-    "est selesai",
-    "selesai",
-    "telp",
-    "telepon",
-    "item :",
-    "parfum",
-    "catatan",
-    "syarat",
-    "terimakasih",
-  ].some((keyword) => line.includes(keyword));
+    "dibayar", "bayar", "tunai", "cash", "paid",
+    "kurang", "kembali", "change", "kembalian",
+    "diskon", "discount", "potongan",
+    "pajak", "tax", "ppn", "pph",
+    "admin", "biaya admin", "service charge",
+    "dp ", "down payment", "uang muka",
+  ].some((kw) => lower.includes(kw));
 }
 
-function isPaymentSummary(line: string): boolean {
-  return ["dibayar", "bayar", "kurang", "kembali", "change", "cash"].some((keyword) => line.includes(keyword));
+// Check if a number looks like a price (not a date, phone, qty, etc.)
+function looksLikePrice(numStr: string, parsedValue: number): boolean {
+  // Too small to be a price (likely qty, date part, etc.)
+  if (parsedValue < 500) return false;
+  // Phone numbers: 08xxx, 62xxx, or 10+ digits
+  if (/^0[0-9]{9,}$/.test(numStr) || /^62[0-9]{8,}$/.test(numStr)) return false;
+  // Date patterns: dd/mm/yyyy, dd-mm-yyyy
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(numStr)) return false;
+  // Time patterns: hh:mm
+  if (/^\d{1,2}:\d{2}/.test(numStr)) return false;
+  // Very long plain number without separators (likely ID/phone)
+  if (/^\d{10,}$/.test(numStr)) return false;
+  return true;
 }
 
 function parseReceiptText(text: string): { items: ParsedItem[]; total: number; rawText: string } {
@@ -54,28 +92,60 @@ function parseReceiptText(text: string): { items: ParsedItem[]; total: number; r
   let total = 0;
   let pendingDescription = "";
 
-  const priceRegex = /(\d[\d.,]+)/g;
+  // Regex: match price patterns — "Rp" prefix, thousand-separated numbers, or trailing numbers
+  // Prioritize: "Rp 10.000", "Rp10000", "10.000", "10,000", plain "10000"
+  const pricePattern = /(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+|\d{4,})/gi;
 
   for (const line of lines) {
-    const lowerLine = line.toLowerCase();
-    // Skip header-like lines
-    if (lowerLine.includes("struk") || lowerLine.includes("nota") || isReceiptMetadata(lowerLine)) continue;
+    // Skip metadata/header/footer lines
+    if (isSkipLine(line)) continue;
 
-    const prices = [...line.matchAll(priceRegex)].map((m) => parseReceiptNumber(m[1]));
-    if (prices.length > 0) {
-      const price = prices[prices.length - 1];
-      const name = line.replace(/[\d.,]+/g, "").trim().replace(/\s+/g, " ");
-      if (price > 0 && name.length > 1) {
-        if (lowerLine.includes("total") || lowerLine.includes("jumlah") || lowerLine.includes("grand")) {
-          total = price;
-        } else if (!isPaymentSummary(lowerLine)) {
-          const itemName = name.replace(/\b(kg|x|rp)\b/gi, "").trim() || pendingDescription || name;
-          items.push({ name: pendingDescription && itemName.length <= 3 ? pendingDescription : itemName, price });
+    const isTotalLn = isTotalLine(line);
+    const isPayment = isPaymentLine(line);
+
+    // Find all potential prices in this line
+    const matches = [...line.matchAll(pricePattern)];
+    const validPrices: { value: number; raw: string }[] = [];
+
+    for (const match of matches) {
+      const raw = match[1];
+      const value = parseReceiptNumber(raw);
+      if (looksLikePrice(raw, value)) {
+        validPrices.push({ value, raw });
+      }
+    }
+
+    if (validPrices.length > 0) {
+      // Take the last valid price on the line (usually the line total/price)
+      const price = validPrices[validPrices.length - 1].value;
+
+      if (isTotalLn) {
+        total = price;
+      } else if (!isPayment) {
+        // Extract item name: remove price numbers and "Rp" prefix
+        let name = line;
+        for (const vp of validPrices) {
+          name = name.replace(vp.raw, "");
+        }
+        name = name.replace(/rp\.?\s*/gi, "").replace(/[x×]\s*\d+/gi, "").replace(/\d+\s*[x×]/gi, "").trim();
+        name = name.replace(/[^\w\s\u00C0-\u024F]/g, " ").replace(/\s+/g, " ").trim();
+        // Remove qty-like prefixes: "2 Nasi Goreng" → "Nasi Goreng"
+        name = name.replace(/^\d+\s+/, "").trim();
+
+        if (name.length > 1) {
+          items.push({ name, price });
+          pendingDescription = "";
+        } else if (pendingDescription) {
+          items.push({ name: pendingDescription, price });
           pendingDescription = "";
         }
       }
-    } else if (!isPaymentSummary(lowerLine)) {
-      pendingDescription = line;
+    } else if (!isPayment && !isTotalLn) {
+      // Line without price — might be item description for next line
+      const cleanLine = line.replace(/^\d+\.\s*/, "").replace(/^\d+\)\s*/, "").trim();
+      if (cleanLine.length > 1) {
+        pendingDescription = cleanLine;
+      }
     }
   }
 
