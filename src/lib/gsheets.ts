@@ -17,7 +17,7 @@ const GSHEET_URL = process.env.NEXT_PUBLIC_GSHEET_URL || "";
 export async function fetchTransactions(): Promise<Transaction[]> {
   if (!GSHEET_URL) return [];
   try {
-    const res = await fetch(`${GSHEET_URL}?action=getAll`, { cache: "no-store" });
+    const res = await fetch("/api/gsheet", { cache: "no-store" });
     const data = await res.json();
     return data.transactions || [];
   } catch {
@@ -32,12 +32,9 @@ export async function addTransaction(tx: Omit<Transaction, "id">): Promise<Trans
   }
   try {
     const body = JSON.stringify({ action: "add", ...tx });
-    const res = await fetch(GSHEET_URL, {
+    const res = await fetch("/api/gsheet", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": String(new TextEncoder().encode(body).length),
-      },
+      headers: { "Content-Type": "application/json" },
       body,
     });
     const data = await res.json();
@@ -51,12 +48,9 @@ export async function deleteTransaction(id: string): Promise<boolean> {
   if (!GSHEET_URL) return false;
   try {
     const body = JSON.stringify({ action: "delete", id });
-    const res = await fetch(GSHEET_URL, {
+    const res = await fetch("/api/gsheet", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": String(new TextEncoder().encode(body).length),
-      },
+      headers: { "Content-Type": "application/json" },
       body,
     });
     const data = await res.json();
