@@ -1,5 +1,10 @@
 # Current Context
 
+## 2026-05-14 (update 2)
+
+- Updated PWA icons: background pink (#FF69B4), teks "BLP / Scan / Nota" warna hitam (#1a1a1a) menggunakan font Arial Black/Bold. Diperbarui untuk ukuran 192x192 dan 512x512 (SVG + PNG).
+- Updated `public/manifest.json`: `name` → "BLP Scan Nota", `short_name` → "BLP Scan", `background_color` dan `theme_color` → "#FF69B4".
+
 ## 2026-05-14
 
 - Rebuilt `node_modules` from `package-lock.json` with `npm ci` after the local dependency install was incomplete and missing package files/binaries.

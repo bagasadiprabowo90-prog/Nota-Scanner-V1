@@ -1,11 +1,11 @@
 {
-  "name": "Money Scanner",
-  "short_name": "Money Scanner",
+  "name": "BLP Scan Nota",
+  "short_name": "BLP Scan",
   "description": "Scan struk belanja & kelola keuangan Anda",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#10b981",
+  "background_color": "#FF69B4",
+  "theme_color": "#FF69B4",
   "orientation": "portrait",
   "categories": ["finance", "productivity"],
   "icons": [

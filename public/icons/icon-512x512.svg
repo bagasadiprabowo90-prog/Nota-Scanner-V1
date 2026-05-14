@@ -1,4 +1,10 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="102.4" fill="#10b981"/>
-  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="230.4" font-family="Arial,sans-serif" fill="white">💰</text>
+  <!-- Background pink -->
+  <rect width="512" height="512" rx="102" fill="#FF69B4"/>
+  <!-- BLP -->
+  <text x="256" y="192" dominant-baseline="middle" text-anchor="middle" font-size="112" font-family="Arial Black,Arial,sans-serif" font-weight="900" fill="#1a1a1a">BLP</text>
+  <!-- Scan -->
+  <text x="256" y="308" dominant-baseline="middle" text-anchor="middle" font-size="74" font-family="Arial,sans-serif" font-weight="700" fill="#1a1a1a">Scan</text>
+  <!-- Nota -->
+  <text x="256" y="406" dominant-baseline="middle" text-anchor="middle" font-size="64" font-family="Arial,sans-serif" font-weight="600" fill="#1a1a1a">Nota</text>
 </svg>
