@@ -54,7 +54,7 @@ export default function HomePage() {
   const recentTx = transactions.slice(0, 5);
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-10 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between pt-2">
         <div>

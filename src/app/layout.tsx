@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TransactionProvider>
             <FloatingNotification />
             <PWAInstallPrompt />
-            <main className="max-w-lg mx-auto min-h-screen pb-20">
+            <main className="max-w-lg mx-auto min-h-screen pb-24">
               <ErrorBoundary>{children}</ErrorBoundary>
             </main>
             <BottomNav />

@@ -60,7 +60,7 @@ export default function ReportPage() {
   const monthName = now.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-10 space-y-4">
       <div className="pt-2">
         <h1 className="text-xl font-bold text-gray-900">Laporan</h1>
         <p className="text-sm text-gray-500">{monthName}</p>

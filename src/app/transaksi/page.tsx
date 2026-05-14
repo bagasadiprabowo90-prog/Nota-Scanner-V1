@@ -54,7 +54,7 @@ export default function TransaksiPage() {
   }, [filtered]);
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-10 space-y-4">
       <div className="flex items-center justify-between pt-2">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Transaksi</h1>

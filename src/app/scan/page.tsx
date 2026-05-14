@@ -187,7 +187,7 @@ export default function ScanPage() {
   const totalAmount = parsedItems.reduce((s, i) => s + i.price, 0) || parsedTotal;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-10 space-y-4">
       {/* Header */}
       <div className="pt-2">
         <h1 className="text-xl font-bold text-gray-900">Scan Struk</h1>
