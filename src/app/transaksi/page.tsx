@@ -90,28 +90,28 @@ export default function TransaksiPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(["all", "income", "expense"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
               filter === f
                 ? f === "income" ? "bg-emerald-500 text-white" : f === "expense" ? "bg-red-500 text-white" : "bg-gray-800 text-white"
                 : "bg-white border border-gray-200 text-gray-600"
             }`}
           >
-            {f === "all" ? <Filter className="w-4 h-4" /> : f === "income" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {f === "all" ? "Semua" : f === "income" ? "Pemasukan" : "Pengeluaran"}
+            {f === "all" ? <Filter className="w-3.5 h-3.5" /> : f === "income" ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+            {f === "all" ? "Semua" : f === "income" ? "Masuk" : "Keluar"}
           </button>
         ))}
         <button
           onClick={() => setShowDateFilter(!showDateFilter)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
             showDateFilter || dateFrom || dateTo ? "bg-blue-500 text-white" : "bg-white border border-gray-200 text-gray-600"
           }`}
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-3.5 h-3.5" />
         </button>
       </div>
 
