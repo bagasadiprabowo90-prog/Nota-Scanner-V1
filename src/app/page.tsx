@@ -65,7 +65,7 @@ export default function HomePage() {
       </div>
 
       {/* Balance Card */}
-      <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
+      <div className="bg-linear-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
         <p className="text-sm opacity-80 mb-1">Total Saldo</p>
         <p className="text-3xl font-bold mb-4">{formatRp(balance)}</p>
         <div className="flex gap-4">
