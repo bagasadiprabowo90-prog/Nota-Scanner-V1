@@ -31,9 +31,14 @@ export async function addTransaction(tx: Omit<Transaction, "id">): Promise<Trans
     return { ...tx, id: Date.now().toString() };
   }
   try {
+    const body = JSON.stringify({ action: "add", ...tx });
     const res = await fetch(GSHEET_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "add", ...tx }),
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(new TextEncoder().encode(body).length),
+      },
+      body,
     });
     const data = await res.json();
     return data.transaction || null;
@@ -45,9 +50,14 @@ export async function addTransaction(tx: Omit<Transaction, "id">): Promise<Trans
 export async function deleteTransaction(id: string): Promise<boolean> {
   if (!GSHEET_URL) return false;
   try {
+    const body = JSON.stringify({ action: "delete", id });
     const res = await fetch(GSHEET_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "delete", id }),
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(new TextEncoder().encode(body).length),
+      },
+      body,
     });
     const data = await res.json();
     return data.success || false;
