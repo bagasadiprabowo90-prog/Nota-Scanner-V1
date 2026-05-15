@@ -4,8 +4,8 @@
   "description": "Scan struk belanja & kelola keuangan Anda",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FF69B4",
-  "theme_color": "#FF69B4",
+  "background_color": "#10b981",
+  "theme_color": "#10b981",
   "orientation": "portrait",
   "categories": ["finance", "productivity"],
   "icons": [
