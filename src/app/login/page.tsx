@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { AUTH_EMAIL_DOMAIN } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
 
@@ -50,15 +50,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-5">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-pink-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-black font-black text-lg">BLP</span>
+          <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-black text-lg">BLP</span>
           </div>
           <h1 className="text-xl font-bold text-gray-900">BLP Scan Nota</h1>
         </div>
 
-        {/* Form */}
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Email</label>
