@@ -1,5 +1,13 @@
 # Current Context
 
+## 2026-05-18
+
+- Fixed dashboard crash showing `Cannot read properties of undefined (reading 'toLocaleString')` by making Rupiah formatting tolerate `undefined`, string amounts, and `NaN` values.
+- Added transaction normalization for localStorage and Google Sheets responses so missing/invalid `amount`, `date`, `category`, `description`, and `type` values are coerced to safe defaults before rendering.
+- Updated dashboard and report calculations to sum amounts through the safe number helper, preventing bad historical data from turning totals into `NaN`.
+- Verified `npm run lint` and `npm run typecheck` pass. `npm run build` compiles successfully but still stops at `spawn EPERM` in the Windows sandbox during Next.js worker execution; external sandbox approval did not complete.
+- Started local dev server at `http://localhost:3000`; login API, `/`, and `/report` return HTTP 200 after authenticated test login.
+
 ## 2026-05-14 (update 2)
 
 - Updated PWA icons: background pink (#FF69B4), teks "BLP / Scan / Nota" warna hitam (#1a1a1a) menggunakan font Arial Black/Bold. Diperbarui untuk ukuran 192x192 dan 512x512 (SVG + PNG).

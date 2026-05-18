@@ -1,6 +1,7 @@
 // Google Sheets via Apps Script Web App
 // Setup: Create a Google Sheet + Apps Script as described in README
 // Set NEXT_PUBLIC_GSHEET_URL env var to your deployed web app URL
+import { toSafeNumber } from "./utils";
 
 export interface Transaction {
   id: string;
@@ -13,13 +14,39 @@ export interface Transaction {
 }
 
 const GSHEET_URL = process.env.NEXT_PUBLIC_GSHEET_URL || "";
+const LS_KEY = "money_transactions";
+
+function normalizeDate(value: unknown) {
+  if (typeof value === "string" && !Number.isNaN(new Date(value).getTime())) {
+    return value;
+  }
+
+  return new Date().toISOString();
+}
+
+export function normalizeTransaction(tx: Partial<Transaction> & Record<string, unknown>): Transaction {
+  return {
+    id: String(tx.id || Date.now()),
+    type: tx.type === "income" ? "income" : "expense",
+    category: String(tx.category || "Lainnya"),
+    description: String(tx.description || ""),
+    amount: toSafeNumber(tx.amount),
+    date: normalizeDate(tx.date),
+    source: typeof tx.source === "string" ? tx.source : undefined,
+  };
+}
+
+function normalizeTransactions(value: unknown): Transaction[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((tx) => normalizeTransaction(tx as Partial<Transaction> & Record<string, unknown>));
+}
 
 export async function fetchTransactions(): Promise<Transaction[]> {
   if (!GSHEET_URL) return [];
   try {
     const res = await fetch("/api/gsheet", { cache: "no-store" });
     const data = await res.json();
-    return data.transactions || [];
+    return normalizeTransactions(data.transactions);
   } catch {
     return [];
   }
@@ -38,7 +65,7 @@ export async function addTransaction(tx: Omit<Transaction, "id">): Promise<Trans
       body,
     });
     const data = await res.json();
-    return data.transaction || null;
+    return data.transaction ? normalizeTransaction(data.transaction) : null;
   } catch {
     return null;
   }
@@ -60,20 +87,19 @@ export async function deleteTransaction(id: string): Promise<boolean> {
   }
 }
 
-// Local storage fallback helpers
-const LS_KEY = "money_transactions";
-
 export function localGetTransactions(): Transaction[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+    const transactions = normalizeTransactions(JSON.parse(localStorage.getItem(LS_KEY) || "[]"));
+    localStorage.setItem(LS_KEY, JSON.stringify(transactions));
+    return transactions;
   } catch {
     return [];
   }
 }
 
 export function localAddTransaction(tx: Omit<Transaction, "id">): Transaction {
-  const newTx: Transaction = { ...tx, id: Date.now().toString() };
+  const newTx = normalizeTransaction({ ...tx, id: Date.now().toString() });
   const existing = localGetTransactions();
   localStorage.setItem(LS_KEY, JSON.stringify([newTx, ...existing]));
   return newTx;
@@ -88,7 +114,7 @@ export function localUpdateTransaction(id: string, updates: Partial<Omit<Transac
   const existing = localGetTransactions();
   const idx = existing.findIndex((t) => t.id === id);
   if (idx === -1) return null;
-  existing[idx] = { ...existing[idx], ...updates };
+  existing[idx] = normalizeTransaction({ ...existing[idx], ...updates, id });
   localStorage.setItem(LS_KEY, JSON.stringify(existing));
   return existing[idx];
 }

@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { TrendingUp, TrendingDown, AlertCircle, Plus, Minus } from "lucide-react";
 import { useTransactions } from "@/lib/TransactionContext";
 import AddTransactionModal from "@/components/AddTransactionModal";
-import { formatRp } from "@/lib/utils";
+import { formatRp, toSafeNumber } from "@/lib/utils";
 import LogoutButton from "@/components/LogoutButton";
 
 function getWeekStart() {
@@ -29,8 +29,8 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"income" | "expense">("expense");
 
-  const totalIncome = useMemo(() => transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0), [transactions]);
-  const totalExpense = useMemo(() => transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0), [transactions]);
+  const totalIncome = useMemo(() => transactions.filter(t => t.type === "income").reduce((s, t) => s + toSafeNumber(t.amount), 0), [transactions]);
+  const totalExpense = useMemo(() => transactions.filter(t => t.type === "expense").reduce((s, t) => s + toSafeNumber(t.amount), 0), [transactions]);
   const balance = totalIncome - totalExpense;
 
   const weeklyExpenses = useMemo(() => {
@@ -43,13 +43,13 @@ export default function HomePage() {
   const categoryTotals = useMemo(() => {
     const map: Record<string, number> = {};
     weeklyExpenses.forEach(t => {
-      map[t.category] = (map[t.category] || 0) + t.amount;
+      map[t.category] = (map[t.category] || 0) + toSafeNumber(t.amount);
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [weeklyExpenses]);
 
   const biggestCategory = categoryTotals[0];
-  const weeklyTotal = weeklyExpenses.reduce((s, t) => s + t.amount, 0);
+  const weeklyTotal = weeklyExpenses.reduce((s, t) => s + toSafeNumber(t.amount), 0);
 
   const recentTx = transactions.slice(0, 5);
 

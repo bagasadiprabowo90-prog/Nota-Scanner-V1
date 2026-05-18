@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { TrendingUp, TrendingDown, PiggyBank } from "lucide-react";
-import { formatRpShort } from "@/lib/utils";
+import { formatRp, formatRpShort, toSafeNumber } from "@/lib/utils";
 
 const COLORS = ["#10b981", "#f59e0b", "#ef4444", "#6366f1", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6"];
 
@@ -30,8 +30,8 @@ export default function ReportPage() {
       });
       data.push({
         month: d.toLocaleDateString("id-ID", { month: "short" }),
-        pemasukan: txs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0),
-        pengeluaran: txs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0),
+        pemasukan: txs.filter(t => t.type === "income").reduce((s, t) => s + toSafeNumber(t.amount), 0),
+        pengeluaran: txs.filter(t => t.type === "expense").reduce((s, t) => s + toSafeNumber(t.amount), 0),
       });
     }
     return data;
@@ -45,16 +45,16 @@ export default function ReportPage() {
         const d = new Date(t.date);
         return t.type === "expense" && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       })
-      .forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount; });
+      .forEach(t => { map[t.category] = (map[t.category] || 0) + toSafeNumber(t.amount); });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [transactions, currentMonth, currentYear]);
 
   const monthlyIncome = transactions
     .filter(t => { const d = new Date(t.date); return t.type === "income" && d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + toSafeNumber(t.amount), 0);
   const monthlyExpense = transactions
     .filter(t => { const d = new Date(t.date); return t.type === "expense" && d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + toSafeNumber(t.amount), 0);
   const monthlySaving = monthlyIncome - monthlyExpense;
 
   const monthName = now.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
@@ -96,7 +96,7 @@ export default function ReportPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatRpShort(v)} />
-              <Tooltip formatter={(v) => "Rp " + Number(v).toLocaleString("id-ID")} />
+              <Tooltip formatter={(v) => formatRp(v)} />
               <Bar dataKey="pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} name="Pemasukan" />
               <Bar dataKey="pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} name="Pengeluaran" />
             </BarChart>
@@ -122,7 +122,7 @@ export default function ReportPage() {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => "Rp " + Number(v).toLocaleString("id-ID")} />
+              <Tooltip formatter={(v) => formatRp(v)} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
             </PieChart>
           </ResponsiveContainer>
@@ -145,7 +145,7 @@ export default function ReportPage() {
                       <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
                       <span className="text-sm text-gray-700">{cat.name}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">Rp {cat.value.toLocaleString("id-ID")}</span>
+                    <span className="text-sm font-semibold text-gray-900">Rp {(cat.value || 0).toLocaleString("id-ID")}</span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
