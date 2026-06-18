@@ -28,7 +28,8 @@ const TransactionContext = createContext<TransactionContextValue>({
 });
 
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => localGetTransactions());
+  // Start with empty array to avoid hydration mismatch (server renders [], client loads after mount)
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const reload = useCallback(async () => {
     const gsheetData = await fetchTransactions();
@@ -52,8 +53,13 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  // Load from Google Sheets on mount if available.
+  // Load transactions after mount (prevents hydration mismatch)
   useEffect(() => {
+    // First, load from localStorage immediately
+    const localData = localGetTransactions();
+    setTransactions(localData);
+
+    // Then try to fetch from Google Sheets if available
     if (!process.env.NEXT_PUBLIC_GSHEET_URL) {
       return;
     }
@@ -66,8 +72,8 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
       if (gsheetData.length > 0) {
         // Smart merge: preserve local amounts if GSheet returns 0
-        const localData = localGetTransactions();
-        const localMap = new Map(localData.map(t => [t.id, t]));
+        const currentLocal = localGetTransactions();
+        const localMap = new Map(currentLocal.map(t => [t.id, t]));
         
         const merged = gsheetData.map(gsheetTx => {
           const localTx = localMap.get(gsheetTx.id);
@@ -80,8 +86,6 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         
         setTransactions(merged);
         localStorage.setItem("money_transactions", JSON.stringify(merged));
-      } else {
-        setTransactions(localGetTransactions());
       }
     }
 

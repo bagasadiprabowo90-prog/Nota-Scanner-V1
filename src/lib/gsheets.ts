@@ -15,9 +15,55 @@ export interface Transaction {
 const GSHEET_URL = process.env.NEXT_PUBLIC_GSHEET_URL || "";
 const LS_KEY = "money_transactions";
 
-function normalizeDate(value: unknown) {
-  if (typeof value === "string" && !Number.isNaN(new Date(value).getTime())) {
-    return value;
+function normalizeDate(value: unknown): string {
+  // Handle Date objects
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Handle strings
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return new Date().toISOString();
+
+    // Try to parse as-is first (ISO format)
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+
+    // Try to parse DD/MM/YYYY or DD-MM-YYYY format (common in Indonesia)
+    const dmyMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1; // JS months are 0-indexed
+      let year = parseInt(dmyMatch[3], 10);
+      if (year < 100) year += 2000; // Convert 2-digit year to 4-digit
+      const date = new Date(year, month, day);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+
+    // Try to parse MM/DD/YYYY format (US format)
+    const mdyMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (mdyMatch) {
+      const month = parseInt(mdyMatch[1], 10) - 1;
+      const day = parseInt(mdyMatch[2], 10);
+      const year = parseInt(mdyMatch[3], 10);
+      const date = new Date(year, month, day);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  // Handle numbers (timestamps)
+  if (typeof value === "number") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
   }
 
   return new Date().toISOString();
