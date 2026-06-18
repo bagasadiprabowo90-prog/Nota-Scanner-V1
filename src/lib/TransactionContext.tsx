@@ -33,9 +33,20 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
   const reload = useCallback(async () => {
     const gsheetData = await fetchTransactions();
     if (gsheetData.length > 0) {
-      setTransactions(gsheetData);
-      // Sync to local storage as cache
-      localStorage.setItem("money_transactions", JSON.stringify(gsheetData));
+      // Smart merge: preserve local amounts if GSheet returns 0
+      const localData = localGetTransactions();
+      const localMap = new Map(localData.map(t => [t.id, t]));
+      
+      const merged = gsheetData.map(gsheetTx => {
+        const localTx = localMap.get(gsheetTx.id);
+        if (gsheetTx.amount === 0 && localTx && localTx.amount > 0) {
+          return { ...gsheetTx, amount: localTx.amount };
+        }
+        return gsheetTx;
+      });
+      
+      setTransactions(merged);
+      localStorage.setItem("money_transactions", JSON.stringify(merged));
     } else {
       setTransactions(localGetTransactions());
     }
@@ -54,8 +65,21 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       if (cancelled) return;
 
       if (gsheetData.length > 0) {
-        setTransactions(gsheetData);
-        localStorage.setItem("money_transactions", JSON.stringify(gsheetData));
+        // Smart merge: preserve local amounts if GSheet returns 0
+        const localData = localGetTransactions();
+        const localMap = new Map(localData.map(t => [t.id, t]));
+        
+        const merged = gsheetData.map(gsheetTx => {
+          const localTx = localMap.get(gsheetTx.id);
+          // If GSheet has amount 0 but local has valid amount, use local
+          if (gsheetTx.amount === 0 && localTx && localTx.amount > 0) {
+            return { ...gsheetTx, amount: localTx.amount };
+          }
+          return gsheetTx;
+        });
+        
+        setTransactions(merged);
+        localStorage.setItem("money_transactions", JSON.stringify(merged));
       } else {
         setTransactions(localGetTransactions());
       }
@@ -78,12 +102,15 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
       const gsheetTx = await gsheetAdd(tx);
       if (gsheetTx) {
         // Replace local entry with GSheet version (may have server-generated ID)
+        // But preserve amount if GSheet returned 0
+        const finalAmount = (gsheetTx.amount === 0 && newTx.amount > 0) ? newTx.amount : gsheetTx.amount;
+        const finalGsheetTx = { ...gsheetTx, amount: finalAmount };
         const current = localGetTransactions().map(t =>
-          t.id === newTx.id ? gsheetTx : t
+          t.id === newTx.id ? finalGsheetTx : t
         );
         localStorage.setItem("money_transactions", JSON.stringify(current));
         setTransactions(current);
-        return gsheetTx;
+        return finalGsheetTx;
       }
     }
     return newTx;

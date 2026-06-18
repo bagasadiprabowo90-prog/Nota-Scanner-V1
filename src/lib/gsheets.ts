@@ -1,7 +1,6 @@
 // Google Sheets via Apps Script Web App
 // Setup: Create a Google Sheet + Apps Script as described in README
 // Set NEXT_PUBLIC_GSHEET_URL env var to your deployed web app URL
-import { toSafeNumber } from "./utils";
 
 export interface Transaction {
   id: string;
@@ -24,13 +23,43 @@ function normalizeDate(value: unknown) {
   return new Date().toISOString();
 }
 
+function parseAmount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return 0;
+  
+  const str = value.trim();
+  if (!str) return 0;
+  
+  // Remove currency symbols and whitespace
+  let cleaned = str.replace(/[Rp\s]/gi, "").trim();
+  if (!cleaned) return 0;
+  
+  // Detect locale format: if has both dot and comma
+  const lastDot = cleaned.lastIndexOf(".");
+  const lastComma = cleaned.lastIndexOf(",");
+  
+  if (lastDot > lastComma) {
+    // European/Indonesian format: 1.000.000 or 1.000,50
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (lastComma > lastDot) {
+    // US format: 1,000,000 or 1,000.50
+    cleaned = cleaned.replace(/,/g, "");
+  } else {
+    // Only one separator or none
+    cleaned = cleaned.replace(/,/g, "");
+  }
+  
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : 0;
+}
+
 export function normalizeTransaction(tx: Partial<Transaction> & Record<string, unknown>): Transaction {
   return {
     id: String(tx.id || Date.now()),
     type: tx.type === "income" ? "income" : "expense",
     category: String(tx.category || "Lainnya"),
     description: String(tx.description || ""),
-    amount: toSafeNumber(tx.amount),
+    amount: parseAmount(tx.amount),
     date: normalizeDate(tx.date),
     source: typeof tx.source === "string" ? tx.source : undefined,
   };
