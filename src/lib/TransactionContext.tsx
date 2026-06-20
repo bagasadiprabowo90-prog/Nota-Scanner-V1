@@ -1,14 +1,13 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import {
   Transaction,
-  fetchTransactions,
-  addTransaction as gsheetAdd,
-  deleteTransaction as gsheetDelete,
   localGetTransactions,
   localAddTransaction,
   localDeleteTransaction,
   localUpdateTransaction,
+  localBackupTransactions,
+  localRestoreFromBackup,
 } from "./gsheets";
 
 interface TransactionContextValue {
@@ -30,109 +29,92 @@ const TransactionContext = createContext<TransactionContextValue>({
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
   // Start with empty array to avoid hydration mismatch (server renders [], client loads after mount)
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const isInitialized = useRef(false);
 
-  const reload = useCallback(async () => {
-    const gsheetData = await fetchTransactions();
-    if (gsheetData.length > 0) {
-      // Smart merge: preserve local amounts if GSheet returns 0
-      const localData = localGetTransactions();
-      const localMap = new Map(localData.map(t => [t.id, t]));
-      
-      const merged = gsheetData.map(gsheetTx => {
-        const localTx = localMap.get(gsheetTx.id);
-        if (gsheetTx.amount === 0 && localTx && localTx.amount > 0) {
-          return { ...gsheetTx, amount: localTx.amount };
-        }
-        return gsheetTx;
-      });
-      
-      setTransactions(merged);
-      localStorage.setItem("money_transactions", JSON.stringify(merged));
-    } else {
-      setTransactions(localGetTransactions());
-    }
+  const reload = useCallback(() => {
+    // Reload from localStorage only
+    const localData = localGetTransactions();
+    setTransactions(localData);
+    // Update backup whenever we reload
+    localBackupTransactions(localData);
   }, []);
 
   // Load transactions after mount (prevents hydration mismatch)
   useEffect(() => {
-    // First, load from localStorage immediately
-    const localData = localGetTransactions();
-    setTransactions(localData);
+    let localData = localGetTransactions();
 
-    // Then try to fetch from Google Sheets if available
-    if (!process.env.NEXT_PUBLIC_GSHEET_URL) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadRemoteTransactions() {
-      const gsheetData = await fetchTransactions();
-      if (cancelled) return;
-
-      if (gsheetData.length > 0) {
-        // Smart merge: preserve local amounts if GSheet returns 0
-        const currentLocal = localGetTransactions();
-        const localMap = new Map(currentLocal.map(t => [t.id, t]));
-        
-        const merged = gsheetData.map(gsheetTx => {
-          const localTx = localMap.get(gsheetTx.id);
-          // If GSheet has amount 0 but local has valid amount, use local
-          if (gsheetTx.amount === 0 && localTx && localTx.amount > 0) {
-            return { ...gsheetTx, amount: localTx.amount };
-          }
-          return gsheetTx;
-        });
-        
-        setTransactions(merged);
-        localStorage.setItem("money_transactions", JSON.stringify(merged));
+    // If localStorage is empty, try to restore from sessionStorage backup
+    if (localData.length === 0) {
+      const restored = localRestoreFromBackup();
+      if (restored.length > 0) {
+        localData = restored;
       }
     }
 
-    void loadRemoteTransactions();
-
-    return () => {
-      cancelled = true;
-    };
+    setTransactions(localData);
+    localBackupTransactions(localData);
+    isInitialized.current = true;
   }, []);
 
-  const addTransaction = useCallback(async (tx: Omit<Transaction, "id">) => {
-    // Always save to local first for responsiveness
-    const newTx = localAddTransaction(tx);
-    setTransactions(localGetTransactions());
-
-    // Try Google Sheets if available
-    if (process.env.NEXT_PUBLIC_GSHEET_URL) {
-      const gsheetTx = await gsheetAdd(tx);
-      if (gsheetTx) {
-        // Replace local entry with GSheet version (may have server-generated ID)
-        // But preserve amount if GSheet returned 0
-        const finalAmount = (gsheetTx.amount === 0 && newTx.amount > 0) ? newTx.amount : gsheetTx.amount;
-        const finalGsheetTx = { ...gsheetTx, amount: finalAmount };
-        const current = localGetTransactions().map(t =>
-          t.id === newTx.id ? finalGsheetTx : t
-        );
-        localStorage.setItem("money_transactions", JSON.stringify(current));
-        setTransactions(current);
-        return finalGsheetTx;
+  // Cross-tab sync: listen for localStorage changes from other tabs/windows
+  useEffect(() => {
+    function handleStorageChange(e: StorageEvent) {
+      if (e.key !== "money_transactions") return;
+      if (!e.newValue) {
+        // localStorage was cleared — try restore from backup
+        const restored = localRestoreFromBackup();
+        if (restored.length > 0) {
+          setTransactions(restored);
+        } else {
+          setTransactions([]);
+        }
+      } else {
+        try {
+          const data = JSON.parse(e.newValue);
+          const normalized = localGetTransactions(); // normalize safely
+          setTransactions(normalized);
+          localBackupTransactions(normalized);
+        } catch {
+          // Corrupted data in other tab — keep current state
+        }
       }
     }
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Periodically backup transactions to sessionStorage (every 30s)
+  useEffect(() => {
+    if (!isInitialized.current) return;
+    const interval = setInterval(() => {
+      if (transactions.length > 0) {
+        localBackupTransactions(transactions);
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [transactions]);
+
+  const addTransaction = useCallback(async (tx: Omit<Transaction, "id">) => {
+    // Save to localStorage only
+    const newTx = localAddTransaction(tx);
+    const updated = localGetTransactions();
+    setTransactions(updated);
+    localBackupTransactions(updated);
     return newTx;
   }, []);
 
   const updateTransaction = useCallback((id: string, updates: Partial<Omit<Transaction, "id">>) => {
     localUpdateTransaction(id, updates);
-    setTransactions(localGetTransactions());
+    const updated = localGetTransactions();
+    setTransactions(updated);
+    localBackupTransactions(updated);
   }, []);
 
-  const deleteTransaction = useCallback(async (id: string) => {
+  const deleteTransaction = useCallback((id: string) => {
     localDeleteTransaction(id);
-    setTransactions(localGetTransactions());
-
-    // Try Google Sheets if available
-    if (process.env.NEXT_PUBLIC_GSHEET_URL) {
-      await gsheetDelete(id);
-    }
+    const updated = localGetTransactions();
+    setTransactions(updated);
+    localBackupTransactions(updated);
   }, []);
 
   return (

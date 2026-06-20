@@ -1,7 +1,20 @@
 # Current Context
 
+## 2026-06-20
+
+- **Fixed critical bug**: transaction history data disappearing and amounts showing Rp 0 after reload.
+  - Root cause 1 (destructive read): `localGetTransactions()` in `gsheets.ts` always re-wrote normalized data back to localStorage on every read. If normalization produced `amount: 0` from an edge-case format, that `0` was persisted permanently, overwriting the real value.
+  - Fix: Changed `localGetTransactions()` to non-destructive read — only re-saves to localStorage if the normalized JSON actually differs from the raw JSON.
+  - Root cause 2 (no cross-tab sync): Multiple tabs could overwrite each other's localStorage without any synchronization.
+  - Fix: Added `StorageEvent` listener in `TransactionProvider` to detect changes from other tabs/windows.
+  - Safety net: Added `sessionStorage` backup mechanism — transactions are periodically backed up to `sessionStorage` (every 30s) and after every mutation. If localStorage is ever cleared, data is automatically restored from the backup on next mount.
+  - Also removed Google Sheets integration code from `TransactionContext.tsx` (was already partially removed in working tree) — app now uses localStorage-only storage since `NEXT_PUBLIC_GSHEET_URL` is not set.
+- Verified `tsc --noEmit` passes with no errors.
+
 ## 2026-05-18
 
+- Changed the local development server default from `http://localhost:3000` to `http://localhost:3001` by updating the `npm run dev` script.
+- Added `outputFileTracingRoot` to `next.config.ts` so Next.js uses the project directory as the workspace root instead of the parent user directory when multiple lockfiles exist.
 - Fixed dashboard crash showing `Cannot read properties of undefined (reading 'toLocaleString')` by making Rupiah formatting tolerate `undefined`, string amounts, and `NaN` values.
 - Added transaction normalization for localStorage and Google Sheets responses so missing/invalid `amount`, `date`, `category`, `description`, and `type` values are coerced to safe defaults before rendering.
 - Updated dashboard and report calculations to sum amounts through the safe number helper, preventing bad historical data from turning totals into `NaN`.

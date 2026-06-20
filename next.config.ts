@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
+import path from "node:path";
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -13,7 +14,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  outputFileTracingRoot: path.resolve(process.cwd()),
 };
 
 export default withPWA(nextConfig);

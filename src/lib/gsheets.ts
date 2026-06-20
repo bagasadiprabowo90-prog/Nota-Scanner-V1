@@ -165,11 +165,45 @@ export async function deleteTransaction(id: string): Promise<boolean> {
 export function localGetTransactions(): Transaction[] {
   if (typeof window === "undefined") return [];
   try {
-    const transactions = normalizeTransactions(JSON.parse(localStorage.getItem(LS_KEY) || "[]"));
-    localStorage.setItem(LS_KEY, JSON.stringify(transactions));
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const transactions = normalizeTransactions(JSON.parse(raw));
+    // Only re-save if the data changed (non-destructive read).
+    // Compare as JSON to avoid writing back on every read.
+    const normalized = JSON.stringify(transactions);
+    if (raw !== normalized) {
+      localStorage.setItem(LS_KEY, normalized);
+    }
     return transactions;
   } catch {
     return [];
+  }
+}
+
+// Restore transactions from sessionStorage backup if localStorage is empty
+export function localRestoreFromBackup(): Transaction[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const backup = sessionStorage.getItem(LS_KEY + "_backup");
+    if (!backup) return [];
+    const transactions = normalizeTransactions(JSON.parse(backup));
+    if (transactions.length > 0) {
+      localStorage.setItem(LS_KEY, JSON.stringify(transactions));
+      sessionStorage.removeItem(LS_KEY + "_backup");
+    }
+    return transactions;
+  } catch {
+    return [];
+  }
+}
+
+// Save a backup to sessionStorage as safety net
+export function localBackupTransactions(transactions: Transaction[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(LS_KEY + "_backup", JSON.stringify(transactions));
+  } catch {
+    // sessionStorage full or unavailable — ignore
   }
 }
 

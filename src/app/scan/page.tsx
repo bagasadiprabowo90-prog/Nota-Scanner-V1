@@ -394,14 +394,14 @@ export default function ScanPage() {
                   <div key={i} className="flex items-center justify-between px-4 py-2.5">
                     <span className="text-sm text-gray-700 flex-1 pr-3 truncate">{item.name}</span>
                     <span className="text-sm font-medium text-gray-900 shrink-0">
-                      Rp {item.price.toLocaleString("id-ID")}
+                      Rp {(item.price || 0).toLocaleString("id-ID")}
                     </span>
                   </div>
                 ))}
               </div>
               <div className="p-3 bg-emerald-50 border-t border-emerald-100 flex justify-between items-center">
                 <span className="text-sm font-bold text-emerald-800">Total</span>
-                <span className="text-sm font-bold text-emerald-800">Rp {totalAmount.toLocaleString("id-ID")}</span>
+                <span className="text-sm font-bold text-emerald-800">Rp {(totalAmount || 0).toLocaleString("id-ID")}</span>
               </div>
             </div>
           )}
