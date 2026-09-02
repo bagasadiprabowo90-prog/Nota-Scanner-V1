@@ -1,5 +1,13 @@
 # Current Context
 
+## 2026-09-02
+
+- UX audit of main flows (login, dashboard, scan, transaksi, report) with live browser verification.
+- **UX fix**: replaced dead "Lupa password?" button on `/login` (had no handler, no reset flow exists) with informative text "Lupa password? Hubungi admin untuk reset." — the app has no password-reset capability, so a clickable-looking button was a dead end.
+- **UX fix**: replaced browser-native `confirm()` dialog for deleting transactions on `/transaksi` with an in-app styled confirmation modal (`Batal` / `Hapus`), consistent with app design (Tailwind, `animate-slide-up`) and the existing `FloatingNotification` toast pattern.
+- Verified both fixes in-browser (delete confirm opens/closes and deletes; login page renders guidance text). `tsc --noEmit` passes; changed files pass ESLint (one pre-existing `react-hooks/set-state-in-effect` error remains in `TransactionContext.tsx` on the base, unrelated to these changes).
+- Note: dev server runs on port 3001 (`bun run dev` → `next dev --webpack -p 3001`).
+
 ## 2026-06-20
 
 - **Fixed critical bug**: transaction history data disappearing and amounts showing Rp 0 after reload.

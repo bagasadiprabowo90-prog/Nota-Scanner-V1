@@ -108,9 +108,7 @@ export default function LoginPage() {
               />
               Ingat saya
             </label>
-            <button type="button" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-              Lupa password?
-            </button>
+            <p className="text-xs text-gray-400">Lupa password? Hubungi admin untuk reset.</p>
           </div>
 
           {error && (

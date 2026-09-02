@@ -17,6 +17,7 @@ export default function TransaksiPage() {
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [txToDelete, setTxToDelete] = useState<Transaction | null>(null);
 
   const filtered = useMemo(() => {
     return transactions
@@ -36,10 +37,8 @@ export default function TransaksiPage() {
   }, [transactions, filter, search, dateFrom, dateTo]);
 
   const handleDelete = (id: string) => {
-    if (confirm("Hapus transaksi ini?")) {
-      deleteTransaction(id);
-      addNotification("Transaksi dihapus", "info");
-    }
+    deleteTransaction(id);
+    addNotification("Transaksi dihapus", "info");
   };
 
   // Group by date
@@ -184,7 +183,7 @@ export default function TransaksiPage() {
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(tx.id)}
+                        onClick={() => setTxToDelete(tx)}
                         className="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -199,6 +198,29 @@ export default function TransaksiPage() {
       )}
 
       <AddTransactionModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditTx(null); }} editTransaction={editTx} />
+
+      {txToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" role="dialog" aria-modal="true" aria-label="Konfirmasi hapus transaksi">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl animate-slide-up">
+            <h3 className="text-sm font-bold text-gray-800 text-center">Hapus transaksi ini?</h3>
+            <p className="text-xs text-gray-500 text-center mt-1">Data yang dihapus tidak bisa dikembalikan.</p>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setTxToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => { handleDelete(txToDelete.id); setTxToDelete(null); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
