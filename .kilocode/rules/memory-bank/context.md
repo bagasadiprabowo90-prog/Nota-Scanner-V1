@@ -1,5 +1,12 @@
 # Current Context
 
+## 2026-09-02
+
+- **Dependency audit**: removed two direct dependencies that were unused:
+  - `is-extglob` — never imported anywhere; still installed transitively via `is-glob` (watchpack/chokidar), so only the direct entry was removed.
+  - `sharp` (devDependency) — never imported and redundant because `next` 16 already ships it as an optionalDependency (`^0.34.4`).
+  - Updated both `bun.lock` and `package-lock.json` (root entries only; transitive/optional entries retained). Verified `tsc --noEmit` and `next build` pass, and `next start` serves `/login` (HTTP 200) with proxy redirects working. `eslint` still fails on the pre-existing `react-hooks/set-state-in-effect` error in `TransactionContext.tsx` (unrelated to this change).
+
 ## 2026-06-20
 
 - **Fixed critical bug**: transaction history data disappearing and amounts showing Rp 0 after reload.

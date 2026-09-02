@@ -20,7 +20,6 @@
         "@types/react-dom": "^19.2.3",
         "eslint": "^9.39.1",
         "eslint-config-next": "^16.0.0",
-        "sharp": "^0.34.5",
         "tailwindcss": "^4.1.17",
         "typescript": "^5.9.3",
       },
